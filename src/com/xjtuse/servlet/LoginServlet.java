@@ -26,6 +26,11 @@ public class LoginServlet extends HttpServlet {
 	}
 	
 	public void doPost(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		String method = request.getParameter("method");
+		if("loginOut".equals(method)){
+			loginOut(request,response);
+			return;
+		}
 		String vcode = request.getParameter("vcode");
 		String name = request.getParameter("account");
 		String passWord = request.getParameter("password");
@@ -42,6 +47,7 @@ public class LoginServlet extends HttpServlet {
 		}
 		
 		//验证码验证通过，对比用户名密码是否正确
+		String loginStatus = "LoginFailed";
 		
 		switch(type){
 			case 1:{
@@ -56,14 +62,22 @@ public class LoginServlet extends HttpServlet {
 				HttpSession session = request.getSession();
 				session.setAttribute("user",admin);
 				session.setAttribute("userType",type);
-				response.getWriter().write("admin");
+				loginStatus = "loginSuccess";
+				
 				break;
 			}
 			default:
 				break;
 		}
+		response.getWriter().write(loginStatus);
 		
 		//说明用户名密码正确
 		
+	}
+	
+	private void loginOut(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		request.getSession().removeAttribute("user");
+		request.getSession().removeAttribute("userType");
+		response.sendRedirect("index.jsp");
 	}
 }
