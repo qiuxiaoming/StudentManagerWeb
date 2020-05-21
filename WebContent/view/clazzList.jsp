@@ -22,7 +22,7 @@
 	        method: "post",
 	        url:"ClazzServlet?method=getClazzList&t="+new Date().getTime(),
 	        idField:'id', 
-	        singleSelect: false,//是否单选 
+	        singleSelect: true,//是否单选 
 	        pagination: true,//分页控件 
 	        rownumbers: true,//行号 
 	        sortName: 'id',
@@ -57,7 +57,7 @@
             	$.messager.alert("消息提醒", "请选择数据进行删除!", "warning");
             } else{
             	var clazzid = selectRow.id;
-            	$.messager.confirm("消息提醒", "将删除与班级相关的所有数据(包括学生)，确认继续？", function(r){
+            	$.messager.confirm("消息提醒", "将删除班级信息（如果班级下存在学生或教师则不能删除），确认继续？", function(r){
             		if(r){
             			$.ajax({
 							type: "post",
@@ -115,7 +115,7 @@
 										$("#addDialog").dialog("close");
 										//清空原表格数据
 										$("#add_name").textbox('setValue', "");
-										
+										$("#info").val("");
 										//重新刷新页面数据
 							  			//$('#gradeList').combobox("setValue", gradeid);
 							  			$('#dataList').datagrid("reload");
@@ -141,7 +141,94 @@
 				},
 			]
 	    });
+
+	  	//设置编辑班级窗口
+	    $("#editDialog").dialog({
+	    	title: "编辑班级",
+	    	width: 500,
+	    	height: 400,
+	    	iconCls: "icon-add",
+	    	modal: true,
+	    	collapsible: false,
+	    	minimizable: false,
+	    	maximizable: false,
+	    	draggable: true,
+	    	closed: true,
+	    	buttons: [
+	    		{
+					text:'确定修改',
+					plain: true,
+					iconCls:'icon-add',
+					handler:function(){
+						var validate = $("#editForm").form("validate");
+						if(!validate){
+							$.messager.alert("消息提醒","请检查你输入的数据!","warning");
+							return;
+						} else{
+							//var gradeid = $("#add_gradeList").combobox("getValue");
+							$.ajax({
+								type: "post",
+								url: "ClazzServlet?method=EditClazz",
+								data: $("#editForm").serialize(),
+								success: function(msg){
+									if(msg == "success"){
+										$.messager.alert("消息提醒","修改成功!","info");
+										//关闭窗口
+										$("#editDialog").dialog("close");
+										//清空原表格数据
+										$("#edit_name").textbox('setValue', "");
+										$("#edit_info").val("");
+										//重新刷新页面数据
+							  			//$('#gradeList').combobox("setValue", gradeid);
+							  			$('#dataList').datagrid("reload");
+										
+									} else{
+										$.messager.alert("消息提醒","修改失败!","warning");
+										return;
+									}
+								}
+							});
+						}
+					}
+				},
+				{
+					text:'重置',
+					plain: true,
+					iconCls:'icon-reload',
+					handler:function(){
+						$("#edit_name").textbox('setValue', "");
+						//重新加载年级
+						$("#edit_info").val("");
+					}
+				},
+			],
+			onBeforeOpen: function(){
+				var selectRow = $("#dataList").datagrid("getSelected");
+				//设置值
+				$("#edit_name").textbox('setValue', selectRow.name);
+				$("#edit_info").val(selectRow.info)
+				$("#edit_id").val(selectRow.id)
+				
+			}
+	    });
 	  	
+	  	//搜索按钮监听事件
+	    $("#search-btn").click(function(){
+	    	$('#dataList').datagrid('load',{
+	    		clazzName: $('#clazzName').val()
+	    	});
+	    });
+	  	
+	  	//修改按钮监听事件
+	    $("#edit-btn").click(function(){
+	    	var selectRow = $("#dataList").datagrid("getSelected");
+        	if(selectRow == null){
+            	$.messager.alert("消息提醒", "请选择数据进行修改!", "warning"); 
+            	return;
+	    	}
+        	$("#editDialog").dialog("open");
+        	
+	    });
 	});
 	</script>
 </head>
@@ -153,9 +240,11 @@
 	<!-- 工具栏 -->
 	<div id="toolbar">
 		<div style="float: left;"><a id="add" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true">添加</a></div>
-			<div style="float: left;" class="datagrid-btn-separator"></div>
+		<div style="float: left; margin-right: 10px"><a id="edit-btn" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true">修改</a></div>
 		<div style="float: left; margin-right: 10px;"><a id="delete" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-some-delete',plain:true">删除</a></div>
-		
+		<div style="margin-top: 3px">班级名称：<input id="clazzName" class="easyui-textbox" name="clazzName" />
+			<a id="search-btn" href="javascript:;" class="easyui-linkbutton" data-options="iconCls:'icon-search',plain:true">搜索</a>
+		</div>
 	</div>
 	
 	<!-- 添加窗口 -->
@@ -169,6 +258,23 @@
 	    		<tr>
 	    			<td>班级介绍:</td>
 	    			<td><textarea id="info" name="info" style="width: 200px; height: 80px;" class=""></textarea></td>
+	    		</tr>
+	    	</table>
+	    </form>
+	</div>
+	
+	<!-- 编辑窗口 -->
+	<div id="editDialog" style="padding: 10px">  
+    	<form id="editForm" method="post">
+    		<input type="hidden" id="edit_id"  name="id">
+	    	<table cellpadding="8" >
+	    		<tr>
+	    			<td>班级名称:</td>
+	    			<td><input id="edit_name" style="width: 200px; height: 30px;" class="easyui-textbox" type="text" name="name"   data-options="required:true, missingMessage:'不能为空'" /></td>
+	    		</tr>
+	    		<tr>
+	    			<td>班级介绍:</td>
+	    			<td><textarea id="edit_info" name="info" style="width: 200px; height: 80px;" class=""></textarea></td>
 	    		</tr>
 	    	</table>
 	    </form>
