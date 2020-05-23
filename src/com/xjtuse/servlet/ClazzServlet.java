@@ -114,8 +114,8 @@ public class ClazzServlet extends HttpServlet {
 	
 	private void getClazzList(HttpServletRequest request,HttpServletResponse response){
 		String name = request.getParameter("clazzName");
-		Integer pageSize = Integer.parseInt(request.getParameter("rows"));
-		Integer currentPage = Integer.parseInt(request.getParameter("page"));
+		Integer pageSize = request.getParameter("rows") == null ? 999:Integer.parseInt(request.getParameter("rows")) ;
+		Integer currentPage = request.getParameter("page") == null ? 1:Integer.parseInt(request.getParameter("page"));
 		Clazz clazz = new Clazz();
 		clazz.setName(name);
 		ClazzDao clazzDao = new ClazzDao();
@@ -131,7 +131,13 @@ public class ClazzServlet extends HttpServlet {
 		//System.out.print(clazzListString);
 		
 		try {
-			response.getWriter().write(JSONObject.fromObject(ret).toString());
+			String from = request.getParameter("from");
+			if("combox".equals(from)){
+				response.getWriter().write(JSONArray.fromObject(clazzList).toString());
+			}else{
+				response.getWriter().write(JSONObject.fromObject(ret).toString());
+			}
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
